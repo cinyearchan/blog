@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+
+  <html class="light page-post">
+
+
+<head>
+  <meta charset="utf-8">
+  
+  <title>[译]Tasks,microtasks,queues,and schedules | Blog</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+    <meta name="keywords" content="前端,设计,Hexo主题,前端开发,用户体验,设计,frontend,design,nodejs,JavaScript" />
+  
+
+  <meta name="description" content="如果你更喜欢视频讲解的话，推荐 Philip Roberts 的 great talk at JSConf on the event loop，虽然没有涵盖 microtasks ，但却详细介绍了 tasks、queues、schedules 原文地址 思考以下JS片段12345678910111213console.log(&apos;script start&apos;);setTimeout(function(">
+<meta property="og:type" content="article">
+<meta property="og:title" content="[译]Tasks,microtasks,queues,and schedules">
+<meta property="og:url" content="https://cinyearchan.cn/2018/07/01/译-Tasks-microtasks-queues-and-schedules/index.html">
+<meta property="og:site_name" content="Blog">
+<meta property="og:description" content="如果你更喜欢视频讲解的话，推荐 Philip Roberts 的 great talk at JSConf on the event loop，虽然没有涵盖 microtasks ，但却详细介绍了 tasks、queues、schedules 原文地址 思考以下JS片段12345678910111213console.log(&apos;script start&apos;);setTimeout(function(">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2018-07-01T14:23:03.455Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="[译]Tasks,microtasks,queues,and schedules">
+<meta name="twitter:description" content="如果你更喜欢视频讲解的话，推荐 Philip Roberts 的 great talk at JSConf on the event loop，虽然没有涵盖 microtasks ，但却详细介绍了 tasks、queues、schedules 原文地址 思考以下JS片段12345678910111213console.log(&apos;script start&apos;);setTimeout(function(">
+
+  
+
+  
+    <link rel="icon" href="/favicon.ico">
+  
+
+  <link href="/css/styles.css?v=c114cbe6" rel="stylesheet">
+
+
+  
+    <link rel="stylesheet" href="/css/personal-style.css">
+  
+
+  
+
+  
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?57e94d016e201fba3603a8a2b0263af0";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+  
+  <script type="text/javascript">
+	(function(){
+	    var bp = document.createElement('script');
+	    var curProtocol = window.location.protocol.split(':')[0];
+	    if (curProtocol === 'https') {
+	        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+	    }
+	    else {
+	        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+	    }
+	    var s = document.getElementsByTagName("script")[0];
+	    s.parentNode.insertBefore(bp, s);
+	})();
+  </script>
+
+
+
+  
+
+  
+</head>
+
+<body>
+
+
+  
+    <span id="toolbox-mobile" class="toolbox-mobile">home</span>
+  
+
+  <div class="post-header CENTER">
+   
+  <div class="toolbox">
+    <a class="toolbox-entry" href="/">
+      <span class="toolbox-entry-text">home</span>
+      <i class="icon-angle-down"></i>
+      <i class="icon-home"></i>
+    </a>
+    <ul class="list-toolbox">
+      
+        <li class="item-toolbox">
+          <a
+            class="CIRCLE"
+            href="/archives/"
+            rel="noopener noreferrer"
+            target="_self"
+            >
+            blog
+          </a>
+        </li>
+      
+        <li class="item-toolbox">
+          <a
+            class="CIRCLE"
+            href="/atom.xml"
+            rel="noopener noreferrer"
+            target="_blank"
+            >
+            rss
+          </a>
+        </li>
+      
+    </ul>
+  </div>
+
+
+</div>
+
+
+
+
+<div class="content content-post CENTER">
+   <article id="post-译-Tasks-microtasks-queues-and-schedules" class="article article-type-post" itemprop="blogPost">
+  <header class="article-header">
+    <h1 class="post-title">[译]Tasks,microtasks,queues,and schedules</h1>
+
+    <div class="article-meta">
+      <span>
+        <i class="icon-calendar"></i>
+        <span>2018.07.01</span>
+      </span>
+
+      
+        <span class="article-author">
+          <i class="icon-user"></i>
+          <span>cinyearchan</span>
+        </span>
+      
+
+      
+
+
+      
+
+      
+      
+    </div>
+  </header>
+
+  <div class="article-content">
+    
+      <p>如果你更喜欢视频讲解的话，推荐 <a href="https://twitter.com/philip_roberts" target="_blank" rel="noopener">Philip Roberts</a> 的 <a href="https://www.youtube.com/watch?v=8aGhZQkoFbQ" target="_blank" rel="noopener">great talk at JSConf on the event loop</a>，虽然没有涵盖 <code>microtasks</code> ，但却详细介绍了 <code>tasks、queues、schedules</code></p>
+<p><a href="https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/" target="_blank" rel="noopener">原文地址</a></p>
+<p>思考以下JS片段<br><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">console</span>.log(<span class="string">'script start'</span>);</span><br><span class="line"></span><br><span class="line">setTimeout(<span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'setTimeout'</span>);</span><br><span class="line">&#125;, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"><span class="built_in">Promise</span>.resolve().then(<span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'promise1'</span>);</span><br><span class="line">&#125;).then(<span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'promise2'</span>);</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="built_in">console</span>.log(<span class="string">'script end'</span>);</span><br></pre></td></tr></table></figure></p>
+<p>控制台会打印什么呢？</p>
+<h3 id="尝试"><a href="#尝试" class="headerlink" title="尝试"></a>尝试</h3><style type="text/css">
+.Btn { 
+    display: inline-block;
+    padding: 4px 12px;
+    margin-bottom: 0;
+    font-size: 14px;
+    line-height: 20px;
+    text-align: center;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75);
+    vertical-align: middle;
+    cursor: pointer;
+    background: #f5f5f5;
+    background-image: linear-gradient(to bottom, #fff, #e6e6e6);
+    background-repeat: repeat-x;
+    border: 1px solid #bbb;
+    border-color: rgba(0, 0, 0, 0.15) rgba(0, 0, 0, 0.15) rgba(0, 0, 0, 0, 25);
+    border-radius: 4px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);  
+}
+.Btn:hover {
+    background-position: 0 -15px;
+    background-color: #e6e6e6;
+    transition: background-position 0.1s linear;
+}
+.Btn:focus {
+    outline: 5px auto -webkit-focus-ring-color;
+    outline-offset: -2px;
+}
+.log-output{
+    width: 100%;
+    box-sizing: border-box;
+    height: 12.7em;
+    font: inherit;
+    line-height: 1.5;
+}
+</style>
+
+<p><button class="Btn clear" id="clear">clear log</button> <button class="Btn run" id="run">run test</button></p>
+<p><textarea class="log log-output log-output-1" width="300" height="200"></textarea></p>
+<script>
+function log1(str) {
+    console.log(str)
+    var logEl = document.querySelector('.log-output-1')
+    logEl.value += (logEl.value ? '\n' : '') + str
+}
+document.querySelector("#clear").addEventListener("click", function() {
+    document.querySelector('.log-output-1').value = ''
+})
+document.querySelector("#run").addEventListener("click", function() {
+    log1('script start')
+    setTimeout(function() {
+        log1('setTimeout')
+    }, 0)
+
+    Promise.resolve().then(function() {
+        log1('promise1')
+    }).then(function() {
+        log1('promise2')
+    })
+
+    log1('script end')
+})
+</script>
+
+<p>正确答案是：<code>script start</code>，<code>script end</code>，<code>promise1</code>，<code>promise2</code>，<code>setTimeout</code>，打印的结果与浏览器的支持程度有莫大的关系</p>
+<p>Microsoft Edge, Firefox 40, iOS Safari and desktop Safari 8.0.8 会在 <code>promise1</code> 和 <code>promsie2</code> 之前打印 <code>setTimeout</code></p>
+<h3 id="原因"><a href="#原因" class="headerlink" title="原因"></a>原因</h3><p>要理解这一点，你需要知道 <code>event loop</code> 如何处理 <code>tasks</code> 和 <code>microtasks</code> 的</p>
+<p>每个‘线程’都有自己的 <code>event loop</code>，因而每个 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API" target="_blank" rel="noopener"><code>web worker</code></a>也都有自己的 <code>event loop</code>，同源的所有窗口共享一个 <code>event loop</code> 以便能够同步的交流。<code>event loop</code> 会持续不断地运行，执行队列中的所有任务。一个 <code>event loop</code> 会有多个任务源，可保证该源中任务的执行顺序(特别是 <a href="http://w3c.github.io/IndexedDB/#database-access-task-source" target="_blank" rel="noopener">IndexedDB</a> 等规范定义了自己的任务源)，但是浏览器会在 <code>event loop</code> 的每一个回合中选择从哪个源获取任务。这允许浏览器优先考虑性能敏感的任务，例如用户输入。</p>
+
+    
+  </div>
+
+  
+      <div class="git"></div>
+  
+
+</article>
+
+
+   
+
+   
+
+
+
+</div>
+
+
+
+
+
+  <div class="modal" id="modal">
+  <span id="cover" class="cover hide"></span>
+  <div id="modal-dialog" class="modal-dialog hide-dialog">
+    <div class="modal-header">
+      <span id="close" class="btn-close">Close</span>
+    </div>
+    <hr>
+    <div class="modal-body">
+      <ul class="list-toolbox">
+        
+          <li class="item-toolbox">
+            <a
+              class="CIRCLE"
+              href="/archives/"
+              rel="noopener noreferrer"
+              target="_self"
+              >
+              blog
+            </a>
+          </li>
+        
+          <li class="item-toolbox">
+            <a
+              class="CIRCLE"
+              href="/atom.xml"
+              rel="noopener noreferrer"
+              target="_blank"
+              >
+              rss
+            </a>
+          </li>
+        
+      </ul>
+
+    </div>
+  </div>
+</div>
+
+
+
+  
+      <div class="fexo-comments comments-post">
+    
+
+    
+    
+
+    
+    
+
+    
+
+    
+    
+
+  </div>
+
+  
+
+  <script type="text/javascript">
+  function loadScript(url, callback) {
+    var script = document.createElement('script')
+    script.type = 'text/javascript';
+
+    if (script.readyState) { //IE
+      script.onreadystatechange = function() {
+        if (script.readyState == 'loaded' ||
+          script.readyState == 'complete') {
+          script.onreadystatechange = null;
+          callback();
+        }
+      };
+    } else { //Others
+      script.onload = function() {
+        callback();
+      };
+    }
+
+    script.src = url;
+    document.getElementsByTagName('head')[0].appendChild(script);
+  }
+
+  window.onload = function() {
+    loadScript('/js/bundle.js?235683', function() {
+      // load success
+    });
+  }
+</script>
+
+</body>
+</html>
