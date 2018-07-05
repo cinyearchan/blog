@@ -22,7 +22,7 @@
 <meta property="og:site_name" content="Blog">
 <meta property="og:description" content="如果你更喜欢视频讲解的话，推荐 Philip Roberts 的 great talk at JSConf on the event loop，虽然没有涵盖 microtasks ，但却详细介绍了 tasks、queues、schedules 原文地址 思考以下JS片段12345678910111213console.log(&apos;script start&apos;);setTimeout(function(">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2018-07-01T14:23:03.455Z">
+<meta property="og:updated_time" content="2018-07-05T14:30:39.682Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="[译]Tasks,microtasks,queues,and schedules">
 <meta name="twitter:description" content="如果你更喜欢视频讲解的话，推荐 Philip Roberts 的 great talk at JSConf on the event loop，虽然没有涵盖 microtasks ，但却详细介绍了 tasks、queues、schedules 原文地址 思考以下JS片段12345678910111213console.log(&apos;script start&apos;);setTimeout(function(">
@@ -227,6 +227,10 @@ document.querySelector("#run").addEventListener("click", function() {
 <p>Microsoft Edge, Firefox 40, iOS Safari and desktop Safari 8.0.8 会在 <code>promise1</code> 和 <code>promsie2</code> 之前打印 <code>setTimeout</code></p>
 <h3 id="原因"><a href="#原因" class="headerlink" title="原因"></a>原因</h3><p>要理解这一点，你需要知道 <code>event loop</code> 如何处理 <code>tasks</code> 和 <code>microtasks</code> 的</p>
 <p>每个‘线程’都有自己的 <code>event loop</code>，因而每个 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Workers_API" target="_blank" rel="noopener"><code>web worker</code></a>也都有自己的 <code>event loop</code>，同源的所有窗口共享一个 <code>event loop</code> 以便能够同步的交流。<code>event loop</code> 会持续不断地运行，执行队列中的所有任务。一个 <code>event loop</code> 会有多个任务源，可保证该源中任务的执行顺序(特别是 <a href="http://w3c.github.io/IndexedDB/#database-access-task-source" target="_blank" rel="noopener">IndexedDB</a> 等规范定义了自己的任务源)，但是浏览器会在 <code>event loop</code> 的每一个回合中选择从哪个源获取任务。这允许浏览器优先考虑性能敏感的任务，例如用户输入。</p>
+<p><code>Tasks</code> 都是被安排好的，以便浏览器可以从其内部进入 JavaScript/DOM 域并确保这些操作能够按顺序执行。在 <code>tasks</code> 之间，浏览器可能会渲染更新。从鼠标单击到事件回调都需要安排任务，解析 <code>HTML</code> 以及上述例子中的 <code>setTimeout</code> 也是如此。</p>
+<p><code>setTimeout</code> 等待给定的延迟，然后为其回调安排新的任务。这可以解释为什么 <code>setTimeout</code> 会在 <code>script end</code> 后面打印—— <code>script end</code> 是第一个任务的一部分，<code>setTimeout</code> 是在另一个任务中打印的。</p>
+<p>微任务(<code>Miscrotasks</code>)通常被安排用于处理在当前正在执行的脚本之后发生的事，例如对批量的行为作出反应，或者不必创建一个全新的任务去处理异步的事务。只要没有其他 JavaScript 在执行中，并且在每个任务结束时，就会在回调后处理微任务队列。在微任务中排列的任何额外的微任务都会添加到队列的末尾并进行处理。微任务包括变动观察回调函数（mutation observer callbacks），以前上面提到的 promise 回调</p>
+<p>一旦 promise 的状态凝滞，或者它的状态已经凝滞，便会为其回调往队列中添加一个微任务。这样能够确保即使 promise 的状态已经凝滞， promsie 回调也是异步的。所以对一个状态确定的 promise 调用 <code>.then(yey, nay)</code> 会立即往队列中添加一个微任务。<code>promise1</code> 和 <code>promise2</code> 会在 <code>script end</code> 后面打印便是如此，因为当前运行的脚本必须在处理微任务之前完成。微任务总是会在下一个任务之前发生，所以 <code>promise1</code> 和 <code>promise2</code> 会在 <code>setTimeout</code> 之前打印。</p>
 
     
   </div>
