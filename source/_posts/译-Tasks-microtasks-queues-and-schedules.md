@@ -34,7 +34,7 @@ console.log('script end');
 
 #### 小试牛刀
 
-<iframe src="https://cinyearchan.cn/task-microtask-demo/page/1-log-test.html" height="300" width="600" style="border: none;"></iframe>
+<iframe src="https://cinyearchan.github.io/task-microtask-demo/page/1-log-test.html" height="300" width="600" style="border: none;"></iframe>
 正确答案是：
 
 `script start`、`script end`、`promise1`、`promise2`、`setTimeout`
@@ -65,7 +65,7 @@ Microsoft Edge、Firefox 40、iOS Safari 以及 桌面版 Safari 8.0.0 会在 `p
 
 好吧，一步一步来：
 
-<iframe src="https://cinyearchan.cn/task-microtask-demo/page/2-step-test.html" height="550" width="600" style="border: none;"></iframe>
+<iframe src="https://cinyearchan.github.io/task-microtask-demo/page/2-step-test.html" height="550" width="600" style="border: none;"></iframe>
 ##### 为什么部分浏览器执行的结果会有差异
 
 部分浏览器打印的结果是：`script start`、`script end`、`setTimeout`、`promise1`、`promise2`，从结果来看，它们会在 `setTimeout` 后面执行 promise 的回调——很有可能是因为它们将调用 promise 的回调当做新任务的一部分而不是微任务。
@@ -145,7 +145,7 @@ outer.addEventListener('click', onClick);
 
 点击内部的方块触发点击事件
 
-<iframe src="https://cinyearchan.cn/task-microtask-demo/page/3-square-click.html" height="450" width="600" style="border: none;"></iframe>
+<iframe src="https://cinyearchan.github.io/task-microtask-demo/page/3-square-click.html" height="450" width="600" style="border: none;"></iframe>
 
 与你的猜测有出入？如果有出入，你仍有可能是对的，毕竟浏览器之间是有差异的：
 
@@ -157,7 +157,7 @@ outer.addEventListener('click', onClick);
 
 派发 click 事件是一个任务；Mutation observer 以及 promise callbacks 会被编排为微任务；`setTimeout` 的回调会被编排为一个任务——以下便是代码运行的详细步骤：
 
-<iframe src="https://cinyearchan.cn/task-microtask-demo/page/4-step-mutation.html" height="550" width="600" style="border: none;"></iframe>
+<iframe src="https://cinyearchan.github.io/task-microtask-demo/page/4-step-mutation.html" height="550" width="600" style="border: none;"></iframe>
 
 Chrome 里运行的结果是正确的。对我来说比较“新”的一点是微任务会在回调之后处理（只要没有其他 JavaScript 在执行中），我认为它是限于任务的末尾——这一规则来源于 HTML 规范中调用回调：
 
@@ -197,7 +197,7 @@ inner.click();
 
 #### 小试牛刀
 
-<iframe src="https://cinyearchan.cn/task-microtask-demo/page/5-click-test.html" height="300" width="600" style="border: none;"></iframe>
+<iframe src="https://cinyearchan.github.io/task-microtask-demo/page/5-click-test.html" height="300" width="600" style="border: none;"></iframe>
 
 各个浏览器的结果：
 
@@ -211,4 +211,4 @@ inner.click();
 
 请看执行的步骤：
 
-<iframe src="https://cinyearchan.cn/task-microtask-demo/page/6-step-mutation.html" height="550" width="600" style="border: none;"></iframe>
+<iframe src="https://cinyearchan.github.io/task-microtask-demo/page/6-step-mutation.html" height="550" width="600" style="border: none;"></iframe>
